@@ -13,23 +13,9 @@ library(ChIPseeker)
 library(TxDb.Hsapiens.UCSC.hg38.knownGene)
 txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
 library(clusterProfiler)
-library("rtracklayer")
-library(remotes)
+#library(remotes) ##used to install seqUtils package to use loadNarrowPeaks (below)
 #remotes::install_github("kauralasoo/seqUtils")
 library(seqUtils)
-
-files <- "U2OS_narrowpeaks"
-print(files)
-
-extraCols_narrowPeak <- c(signalValue = "numeric", pValue = "numeric",
-                          qValue = "numeric", peak = "integer")
-
-gr_narrowPeak <- import(files, format = "BED",
-                        extraCols = extraCols_narrowPeak)
-
-peak <- readPeakFile(files, as="GRanges")
-
-peak
 
 peak <- loadNarrowPeaks( "U2OS_narrowpeaks", c("U2OSBRCA1etop_callpeaknoabC", 
                                        "U2OSBRCA1nt_callpeaknoabC", 
@@ -38,6 +24,9 @@ peak <- loadNarrowPeaks( "U2OS_narrowpeaks", c("U2OSBRCA1etop_callpeaknoabC",
                                        "U2OSRNAPIIetop_callpeaknoabC"),
                 peaks_suffix = "_peaks.narrowPeak", 
                 sub_dir = FALSE)
+peak[[4]]
+
+covplot(peak[[5]], weightCol="score")
 ```
 
 ## R Markdown
