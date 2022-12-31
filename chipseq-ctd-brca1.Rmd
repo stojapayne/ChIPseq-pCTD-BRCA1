@@ -6,13 +6,27 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-{r results='hide'}
+knitr::opts_chunk$set(echo = TRUE, results = 'hide')
 
 library(BiocManager)
 library(ChIPseeker)
-BiocManager::install("TxDb.Hsapiens.UCSC.hg38.knownGene")
-library(TxDb.Hsapiens.UCSC.hg38.knownGenen)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
+library(clusterProfiler)
+library("rtracklayer")
+
+files <- c("U2OS_narrowpeaks/U2OSBRCA1etop_callpeaknoabC_peaks.narrowPeak", "U2OS_narrowpeaks/U2OSBRCA1nt_callpeaknoabC_peaks.narrowPeak", "U2OS_narrowpeaks/U2OSRNAPIIdmso1_callpeaknoabC_peaks.narrowPeak",  "U2OS_narrowpeaks/U2OSRNAPIIdmso2_callpeaknoabC_peaks.narrowPeak", "U2OS_narrowpeaks/U2OSRNAPIIetop_callpeaknoabC_peaks.narrowPeak")
+print(files)
+
+extraCols_narrowPeak <- c(signalValue = "numeric", pValue = "numeric",
+                          qValue = "numeric", peak = "integer")
+
+gr_narrowPeak <- import(files, format = "BED",
+                        extraCols = extraCols_narrowPeak)
+
+peak <- readPeakFile(files, as="GRanges")
+
+peak
 ```
 
 ## R Markdown
