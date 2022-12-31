@@ -14,8 +14,11 @@ library(TxDb.Hsapiens.UCSC.hg38.knownGene)
 txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
 library(clusterProfiler)
 library("rtracklayer")
+library(remotes)
+#remotes::install_github("kauralasoo/seqUtils")
+library(seqUtils)
 
-files <- c("U2OS_narrowpeaks/U2OSBRCA1etop_callpeaknoabC_peaks.narrowPeak", "U2OS_narrowpeaks/U2OSBRCA1nt_callpeaknoabC_peaks.narrowPeak", "U2OS_narrowpeaks/U2OSRNAPIIdmso1_callpeaknoabC_peaks.narrowPeak",  "U2OS_narrowpeaks/U2OSRNAPIIdmso2_callpeaknoabC_peaks.narrowPeak", "U2OS_narrowpeaks/U2OSRNAPIIetop_callpeaknoabC_peaks.narrowPeak")
+files <- "U2OS_narrowpeaks"
 print(files)
 
 extraCols_narrowPeak <- c(signalValue = "numeric", pValue = "numeric",
@@ -27,6 +30,14 @@ gr_narrowPeak <- import(files, format = "BED",
 peak <- readPeakFile(files, as="GRanges")
 
 peak
+
+peak <- loadNarrowPeaks( "U2OS_narrowpeaks", c("U2OSBRCA1etop_callpeaknoabC", 
+                                       "U2OSBRCA1nt_callpeaknoabC", 
+                                       "U2OSRNAPIIdmso1_callpeaknoabC",
+                                       "U2OSRNAPIIdmso2_callpeaknoabC",
+                                       "U2OSRNAPIIetop_callpeaknoabC"),
+                peaks_suffix = "_peaks.narrowPeak", 
+                sub_dir = FALSE)
 ```
 
 ## R Markdown
