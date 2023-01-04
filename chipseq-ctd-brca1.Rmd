@@ -26,7 +26,8 @@ peak <- loadNarrowPeaks( "U2OS_narrowpeaks", c("U2OSBRCA1nt_callpeaknoabC","U2OS
 
 covplot <- covplot(peak, weightCol="score", chrs=c("chr17"), xlim=c(4.5e7, 5e7))
 covplot + facet_grid(~factor (.id,levels = c( "U2OSRNAPIIdmso1_callpeaknoabC" , "U2OSRNAPIIetop_callpeaknoabC" ,
-                                            "U2OSBRCA1nt_callpeaknoabC" , "U2OSBRCA1etop_callpeaknoabC")))
+                                            "U2OSBRCA1nt_callpeaknoabC" , "U2OSBRCA1etop_callpeaknoabC"))) +
+  theme(legend.position="none")
 
 ```
 
