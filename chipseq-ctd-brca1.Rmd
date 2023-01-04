@@ -17,28 +17,17 @@ library(clusterProfiler)
 #remotes::install_github("kauralasoo/seqUtils")
 library(seqUtils)
 library(ggpubr)
+library(ggplot2)
 
-peakBRCA1 <- loadNarrowPeaks( "U2OS_narrowpeaks", c("U2OSBRCA1etop_callpeaknoabC", 
-                                       "U2OSBRCA1nt_callpeaknoabC"),
+peak <- loadNarrowPeaks( "U2OS_narrowpeaks", c("U2OSBRCA1nt_callpeaknoabC","U2OSBRCA1etop_callpeaknoabC",
+                                               "U2OSRNAPIIdmso1_callpeaknoabC", "U2OSRNAPIIetop_callpeaknoabC" ),
                 peaks_suffix = "_peaks.narrowPeak", 
                 sub_dir = FALSE)
 
-peakRNAPII <- loadNarrowPeaks( "U2OS_narrowpeaks",
-                               c("U2OSRNAPIIetop_callpeaknoabC","U2OSRNAPIIdmso2_callpeaknoabC"),
-                peaks_suffix = "_peaks.narrowPeak", 
-                sub_dir = FALSE)
-covplotRNAPII <- covplot(peakRNAPII, weightCol="score", chrs=c("chr1", "chr2", "chr3", "chr4", "chr5", "chr6",
-                                                               "chr7", "chr8", "chr9", "chr10", "chr11", "chr12",
-                                                               "chr13", "chr14", "chr15", "chr16", "chr17",
-                                                               "chr18", "chr19", "chr20", "chr21", "chr22",
-                                                               "chrX"))
+covplot <- covplot(peak, weightCol="score", chrs=c("chr17"), xlim=c(4.5e7, 5e7))
+covplot + facet_grid(~factor (.id,levels = c( "U2OSRNAPIIdmso1_callpeaknoabC" , "U2OSRNAPIIetop_callpeaknoabC" ,
+                                            "U2OSBRCA1nt_callpeaknoabC" , "U2OSBRCA1etop_callpeaknoabC")))
 
-covplotBRCA1 <- covplot(peakBRCA1, weightCol="score", chrs=c("chr1", "chr2", "chr3", "chr4", "chr5", "chr6",
-                                                             "chr7", "chr8", "chr9", "chr10", "chr11", "chr12",
-                                                             "chr13", "chr14", "chr15", "chr16", "chr17", "chr18",
-                                                             "chr19", "chr20", "chr21", "chr22", "chrX", "chrY"))
-
-ggarrange(covplotBRCA1, covplotRNAPII, nrow = 2, ncol = 1)
 ```
 
 ## R Markdown
