@@ -5,8 +5,9 @@ date: '2022-12-29'
 output: html_document
 ---
 
+## ChIP peaks coverage plot 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, results = 'hide')
+knitr::opts_chunk$set(echo = FALSE)
 
 library(BiocManager)
 library(ChIPseeker)
@@ -31,22 +32,30 @@ covplot + facet_grid(~factor (.id,levels = c( "U2OSRNAPIIdmso1_callpeaknoabC" , 
 
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+## Heatmap of ChIP peaks binding to TSS regions
+```{r setup, include=FALSE, echo=FALSE}
 
-```{r cars}
-summary(cars)
+promoter <- getPromoters(TxDb=txdb, upstream=3000, downstream=3000)
+
+tagMatrix <- lapply(peak, getTagMatrix, windows=promoter)
+
+lapply(names(tagMatrix), function(x) tagHeatmap(tagMatrix[[x]], xlim=c(-3000, 3000), color="red", xlab="Genomic Region (5'-3')", title=names(tagMatrix[x])))
+
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+## Average profile plot of ChIP peaks binding to TSS region
+```{r setup, include=FALSE, echo=FALSE}
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+plotAvgProf(tagMatrix, xlim=c(-3000, 3000),
+            xlab="Genomic Region (5'->3')", ylab = "Read Count Frequency")
+
+
+lapply(names(tagMatrix), function(x) plotAvgProf(tagMatrix[[x]], xlim=c(-3000, 3000),
+                                                 xlab="Genomic Region (5'->3')", ylab =
+                                                   "Read Count Frequency",
+                                                 conf=0.95, resample=1000))
+
 ```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
