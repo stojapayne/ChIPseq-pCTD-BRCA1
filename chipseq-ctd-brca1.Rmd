@@ -19,6 +19,9 @@ library(clusterProfiler)
 library(seqUtils)
 library(ggpubr)
 library(ggplot2)
+library(ggupset)
+library(ggimage)
+library(ReactomePA)
 
 peak <- loadNarrowPeaks( "U2OS_narrowpeaks", c("U2OSBRCA1nt_callpeaknoabC","U2OSBRCA1etop_callpeaknoabC",
                                                "U2OSRNAPIIdmso1_callpeaknoabC", "U2OSRNAPIIetop_callpeaknoabC" ),
@@ -57,5 +60,57 @@ lapply(names(tagMatrix), function(x) plotAvgProf(tagMatrix[[x]], xlim=c(-3000, 3
                                                  xlab="Genomic Region (5'->3')", ylab =
                                                    "Read Count Frequency",
                                                  conf=0.95, resample=1000))
+
+```
+
+## Profile of ChIP peaks binding to body regions
+```{r setup, include=FALSE, echo=FALSE}
+
+##will need to test on other computer - cannot allocate memory
+
+plotPeakProf2(peak = peak, upstream = rel(0.2), downstream = rel(0.2),
+              conf = 0.95, by = "gene", type = "body", nbin = 800,
+              TxDb = txdb, weightCol = "score",ignore_strand = F)
+
+```
+
+## Peak Annotation
+
+```{r setup, include=FALSE, echo=FALSE}
+
+peakAnno <- annotatePeak(peak[[4]], tssRegion=c(-3000, 3000),
+                         TxDb=txdb, annoDb="org.Hs.eg.db")
+
+plotAnnoPie(peakAnno)
+
+
+
+
+```
+
+## Functional enrichment analysis
+```{r setup, include=FALSE, echo=FALSE}
+
+BRCA1dmsopathway<-enrichPathway(as.data.frame(peakAnno)$geneId)
+BRCA1etoppathway<- enrichPathway(as.data.frame(peakAnno)$geneId)
+RNAPIIdmsopathway<- enrichPathway(as.data.frame(peakAnno)$geneId)
+RNAPIIetoppathway<- enrichPathway(as.data.frame(peakAnno)$geneId)
+
+head(BRCA1dmsopathway)
+
+BRCA1dmsogene <- seq2gene(peak[[1]], tssRegion = c(-1000, 1000), flankDistance = 3000, TxDb=txdb)
+BRCA1etopgene<- seq2gene(peak[[2]], tssRegion = c(-1000, 1000), flankDistance = 3000, TxDb=txdb)
+RNAPIIdmsogene<- seq2gene(peak[[3]], tssRegion = c(-1000, 1000), flankDistance = 3000, TxDb=txdb)
+RNAPIIetopgene<- seq2gene(peak[[4]], tssRegion = c(-1000, 1000), flankDistance = 3000, TxDb=txdb)
+
+BRCA1dmsopathway2 <- enrichPathway(BRCA1dmsogene)
+BRCA1etoppathway2 <- enrichPathway(BRCA1etopgene)
+RNAPIIdmsopathway2 <- enrichPathway(RNAPIIdmsogene)
+RNAPIIetoppathway2 <- enrichPathway(RNAPIIdmsogene)
+
+head(RNAPIIdmsopathway2)
+head(RNAPIIetoppathway2)
+
+dotplot(RNAPIIetoppathway2)
 
 ```
