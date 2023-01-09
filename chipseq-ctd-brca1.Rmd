@@ -25,8 +25,9 @@ library(ReactomePA)
 library(dplyr)
 library(stringr)
 
-peak <- loadNarrowPeaks( "U2OS_narrowpeaks", c("U2OSBRCA1nt_callpeaknoabC","U2OSBRCA1etop_callpeaknoabC",
-                                               "U2OSRNAPIIdmso1_callpeaknoabC", "U2OSRNAPIIetop_callpeaknoabC" ),
+peak <- loadNarrowPeaks( "U2OS_narrowpeaks", c("U2OSRNAPIIdmso1_callpeaknoabC", "U2OSRNAPIIetop_callpeaknoabC",
+                                               "U2OSBRCA1nt_callpeaknoabC", "U2OSBRCA1etop_callpeaknoabC"
+                                               ),
                 peaks_suffix = "_peaks.narrowPeak", 
                 sub_dir = FALSE)
 
@@ -45,6 +46,8 @@ covplot + facet_grid(~factor (.id,levels = c( "U2OSRNAPIIdmso1_callpeaknoabC" , 
 promoter <- getPromoters(TxDb=txdb, upstream=3000, downstream=3000)
 
 tagMatrix <- lapply(peak, getTagMatrix, windows=promoter)
+tagMatrix<- tagMatrix[c(c("U2OSRNAPIIdmso1_callpeaknoabC", "U2OSRNAPIIetop_callpeaknoabC", "U2OSBRCA1nt_callpeaknoabC",
+                          "U2OSBRCA1etop_callpeaknoabC"))]
 
 lapply(names(tagMatrix), function(x) tagHeatmap(tagMatrix[[x]], xlim=c(-3000, 3000), color="red", xlab="Genomic Region (5'-3')", title=names(tagMatrix[x])))
 
@@ -65,16 +68,6 @@ lapply(names(tagMatrix), function(x) plotAvgProf(tagMatrix[[x]], xlim=c(-3000, 3
 
 ```
 
-## Profile of ChIP peaks binding to body regions
-```{r setup, include=FALSE, echo=FALSE}
-
-##will need to test on other computer - cannot allocate memory
-
-plotPeakProf2(peak = peak, upstream = rel(0.2), downstream = rel(0.2),
-              conf = 0.95, by = "gene", type = "body", nbin = 800,
-              TxDb = txdb, weightCol = "score",ignore_strand = F)
-
-```
 
 ## Peak Annotation
 
@@ -95,10 +88,6 @@ peakAnnoDFBRCA1etop<-as.data.frame(peakAnnoBRCA1etop) %>%
   filter(str_detect(annotation, "Promoter"))
 peakAnnoDFBRCA1dmso<-as.data.frame(peakAnnoBRCA1dmso) %>%
   filter(str_detect(annotation, "Promoter"))
-
-
-
-
 
 
 ```
@@ -157,6 +146,55 @@ dotplot(BRCA1etopPromoterPathway2)
 
 
 ```
+
+
+## Profile of several ChIP peak data binding to TSS region
+
+```{r setup, include=FALSE, echo=FALSE}
+
+
+allplot<-plotAvgProf(tagMatrix, xlim=c(-3000,3000))  +
+  scale_color_manual(values = c("blue", "red", "green", "orange"))
+  
+allplot
+
+```
+
+
+## Profile of several ChIP peak data binding to body region
+
+```{r setup, include=FALSE, echo=FALSE}
+
+allplotgbody<- plotPeakProf2(peak, upstream = rel(0.2), downstream = rel(0.2),
+              conf = 0.95, by = "gene", type = "body",
+              TxDb = txdb, facet = "row", nbin = 800)
+
+
+allplotgbody
+
+```
+
+
+## ChIP peak annotation comparison
+
+```{r setup, include=FALSE, echo=FALSE}
+
+
+peakAnnoList <- lapply(peak, annotatePeak, TxDb=txdb,
+                       tssRegion=c(-3000, 3000), verbose=FALSE)
+
+
+plotAnnoBar(peakAnnoList)
+
+
+```
+
+
+
+
+
+
+
 
 
 
