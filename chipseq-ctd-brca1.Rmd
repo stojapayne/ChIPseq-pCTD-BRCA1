@@ -22,6 +22,8 @@ library(ggplot2)
 library(ggupset)
 library(ggimage)
 library(ReactomePA)
+library(dplyr)
+library(stringr)
 
 peak <- loadNarrowPeaks( "U2OS_narrowpeaks", c("U2OSBRCA1nt_callpeaknoabC","U2OSBRCA1etop_callpeaknoabC",
                                                "U2OSRNAPIIdmso1_callpeaknoabC", "U2OSRNAPIIetop_callpeaknoabC" ),
@@ -78,10 +80,23 @@ plotPeakProf2(peak = peak, upstream = rel(0.2), downstream = rel(0.2),
 
 ```{r setup, include=FALSE, echo=FALSE}
 
-peakAnno <- annotatePeak(peak[[4]], tssRegion=c(-3000, 3000),
+peakAnno <- annotatePeak(peak[[2]], tssRegion=c(-3000, 3000),
                          TxDb=txdb, annoDb="org.Hs.eg.db")
+peakAnnoBRCA1dmso<-annotatePeak(peak[[1]], tssRegion=c(-3000,3000), TxDb=txdb, annoDb="org.Hs.eg.db")
+peakAnnoBRCA1etop<-annotatePeak(peak[[2]], tssRegion=c(-3000, 3000), TxDb=txdb, annoDb="org.Hs.eg.db")
+peakAnnoRNAPIIdmso<-annotatePeak(peak[[3]], tssRegion=c(-3000,3000), TxDb=txdb, annoDb="org.Hs.eg.db")
+peakAnnoRNAPIIetop<-annotatePeak(peak[[4]], tssRegion=c(-3000,3000), TxDb=txdb, annoDb="org.Hs.eg.db")
 
-plotAnnoPie(peakAnno)
+peakAnnoDFRNAPIIetop<- as.data.frame(peakAnnoRNAPIIetop) %>%
+  filter(str_detect(annotation, "Promoter"))
+peakAnnoDFRNAPIIdmso<- as.data.frame(peakAnnoRNAPIIdmso) %>%
+  filter(str_detect(annotation, "Promoter"))
+peakAnnoDFBRCA1etop<-as.data.frame(peakAnnoBRCA1etop) %>%
+  filter(str_detect(annotation, "Promoter"))
+peakAnnoDFBRCA1dmso<-as.data.frame(peakAnnoBRCA1dmso) %>%
+  filter(str_detect(annotation, "Promoter"))
+
+
 
 
 
@@ -114,3 +129,38 @@ head(RNAPIIetoppathway2)
 dotplot(RNAPIIetoppathway2)
 
 ```
+
+
+# Reactome pathway enrichment analysis; promoters only
+
+```{r setup, include=FALSE, echo=FALSE}
+
+RNAPIIdmsoPromoterReactome<-enrichPathway(peakAnnoDFRNAPIIdmso$geneId)
+RNAPIIdmsoPromoterGene<-seq2gene(peak[[3]], tssRegion=c(-1000,1000), flankDistance = 3000, TxDb=txdb)
+RNAPIIdmsoPromoterpathway2<-enrichPathway(RNAPIIdmsoPromoterGene)
+dotplot(RNAPIIdmsoPromoterpathway2)
+
+RNAPIIetopPromoterReactome<-enrichPathway(peakAnnoDFRNAPIIetop$geneId)
+RNAPIIetopPromoterGene<-seq2gene(peak[[4]], tssRegion=c(-1000,1000), flankDistance=3000,TxDb=txdb)
+RNAPIIetopPromoterPathway2<-enrichPathway(RNAPIIetopPromoterGene)
+dotplot(RNAPIIetopPromoterPathway2)
+
+BRCA1dmsoPromoterReactome<-enrichPathway(peakAnnoDFBRCA1dmso$geneId)
+BRCA1dmsoPromoterGene<-seq2gene(peak[[1]], tssRegion=c(-1000,1000), flankDistance=3000, TxDb=txdb)
+BRCA1dmsoPromoterpathway2<-enrichPathway(BRCA1dmsoPromoterGene)
+dotplot(BRCA1dmsoPromoterpathway2)
+
+BRCA1etopPromoterReactome<-enrichPathway(peakAnnoDFBRCA1etop$geneId)
+BRCA1etopPromoterGene<-seq2gene(peak[[2]], tssRegion=c(-1000,1000), flankDistance=3000, TxDb=txdb)
+BRCA1etopPromoterPathway2<-enrichPathway(BRCA1etopPromoterGene)
+dotplot(BRCA1etopPromoterPathway2)
+
+
+```
+
+
+
+
+
+
+
