@@ -30,6 +30,7 @@ library(dplyr)
 library(stringr)
 #BiocManager::install("org.Hs.eg.db")
 library(org.Hs.eg.db)
+library(patchwork)
 
 peak <- loadNarrowPeaks( "U2OS_narrowpeaks", c("U2OSRNAPIIdmso1_callpeaknoabC", "U2OSRNAPIIetop_callpeaknoabC",
                                                "U2OSBRCA1nt_callpeaknoabC", "U2OSBRCA1etop_callpeaknoabC"
@@ -124,50 +125,72 @@ plotDistToTSS(peakAnnoList)
 txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
 peakAnnoList <- lapply(peak, annotatePeak, TxDb=txdb,
                        tssRegion=c(-3000, 3000), verbose=FALSE)
-gene<- lapply(peak, seq2gene, tssRegion = c(-1000, 1000), flankDistance=3000, TxDb=txdb)
-enrichpathwaylist<- lapply(gene, enrichPathway)
 
+##Global
 
-dotplot(enrichpathwaylist[["U2OSRNAPIIetop_callpeaknoabC"]])
-
-RNAPIIdmsopathway<-enrichPathway(as.data.frame(peakAnnoList[["U2OSRNAPIIdmso1_callpeaknoabC"]])$geneId)
-RNAPIIetoppathway<- enrichPathway(as.data.frame(peakAnnoList[["U2OSRNAPIIetop_callpeaknoabC"]])$geneId)
-BRCA1dmsopathway<- enrichPathway(as.data.frame(peakAnnoList[["U2OSBRCA1nt_callpeaknoabC"]])$geneId)
-BRCA1etoppathway<- enrichPathway(as.data.frame(peakAnnoList[["U2OSBRCA1etop_callpeaknoabC"]])$geneId)
-
-
-##Promoter only
-
-peakAnnopromoterRNAPIIetop<- as.data.frame(peakAnnoList[["U2OSRNAPIIetop_callpeaknoabC"]]) %>%
-  filter(str_detect(annotation, "Promoter"))
-peakAnnopromoterRNAPIIdmso<- as.data.frame(peakAnnoList[["U2OSRNAPIIdmso1_callpeaknoabC"]]) %>%
-  filter(str_detect(annotation, "Promoter"))
-peakAnnopromoterBRCA1etop<-as.data.frame(peakAnnoList[["U2OSBRCA1etop_callpeaknoabC"]]) %>%
-  filter(str_detect(annotation, "Promoter"))
-peakAnnopromoterBRCA1dmso<-as.data.frame(peakAnnoList[["U2OSBRCA1nt_callpeaknoabC"]]) %>%
-  filter(str_detect(annotation, "Promoter"))
-
-RNAPIIdmsoPromoterReactome<-enrichPathway(peakAnnopromoterRNAPIIdmso$geneId)
-RNAPIIetopPromoterReactome<-enrichPathway(peakAnnopromoterRNAPIIetop$geneId)
-BRCA1dmsoPromoterReactome<-enrichPathway(peakAnnopromoterBRCA1dmso$geneId)
-BRCA1etopPromoterReactome<-enrichPathway(peakAnnopromoterBRCA1etop$geneId)
-
-dotplot(RNAPIIdmsoPromoterReactome)
-dotplot(RNAPIIetopPromoterReactome)
-dotplot(BRCA1dmsoPromoterReactome)
-dotplot(BRCA1etopPromoterReactome)
-
-RNAPIIetopshorter<-as.data.frame(peakAnnoListshorter[["U2OSRNAPIIetop_callpeaknoabC"]])%>%
-  filter(str_detect(annotation, "Promoter"))
-dotplot(enrichPathway(RNAPIIetopshorter$geneId))
-
-enrichList<-list(RNAPIIdmsoPromoterReactome, RNAPIIetopPromoterReactome, BRCA1dmsoPromoterReactome, BRCA1etopPromoterReactome)
-names(enrichList) <- c("RNAPIIdmsoPromoterReactome", "RNAPIIetopPromoterReactome", "BRCA1dmsoPromoterReactome", "BRCA1etopPromoterReactome")
-enrichListDF <- lapply(enrichList, function(i) as.data.frame(i))
-enrichListDFnewcol <- mapply(cbind, enrichListDF, "Variable"=names(enrichListDF), SIMPLIFY=F)
-enrichListDFnewcol <- lapply(enrichListDFnewcol, FUN = function(X){X[c(10, 2, 1, 3:9)]})
+geneglobal<- lapply(peak, seq2gene, tssRegion = c(-3000, 3000), flankDistance=3000, TxDb=txdb)
+enrichpathwaylist<- lapply(geneglobal, enrichPathway)
+enrichpathwaylistdf<-lapply(enrichpathwaylist, function(i) as.data.frame(i))
+enrichListshorterDFnewcol <- mapply(cbind, enrichpathwaylistshorterdf, "Variable"=names(enrichpathwaylistshorter), SIMPLIFY=F)
+enrichListDFnewcol <- lapply(enrichListshorterDFnewcol, FUN = function(X){X[c(10, 2, 1, 3:9)]})
 
 enrichListDFnewcol
+
+dotplotRNAPIIdmso<-dotplot(enrichpathwaylistshorter[["U2OSRNAPIIdmso1_callpeaknoabC"]], title="U2OSRNAPIIdmso Reactome Enrichment")+
+  xlab(NULL)
+dotplotRNAPIIEtop<-dotplot(enrichpathwaylistshorter[["U2OSRNAPIIetop_callpeaknoabC"]], title="U2OSRNAPIIEtop Reactome Enrichment")
+dotplotBRCA1dmso<- dotplot(enrichpathwaylistshorter[["U2OSBRCA1nt_callpeaknoabC"]], title="U2OSBRCA1dmso Reactome Enrichment")+
+  xlab(NULL)
+dotplotBRCA1Etop<- dotplot(enrichpathwaylistshorter[["U2OSBRCA1etop_callpeaknoabC"]], title="U2OSBRCA1Etop Reactome Enrichment")
+
+ggarrange(dotplotRNAPIIdmso, dotplotRNAPIIEtop, ncol=1, nrow=2, align = 'v')
+ggarrange(dotplotBRCA1dmso, dotplotBRCA1Etop, ncol=1, nrow=2, align='v')
+
+# enrichlistglobal<- lapply(names(peakAnnoList), function(x) enrichPathway(as.data.frame(peakAnnoList[[x]])$geneId))
+# names(enrichlistglobal)<-c(names(peakAnnoList))
+# enrichlistglobalDF<-lapply(enrichlistglobal, function(i) as.data.frame(i))
+# enrichListglobalDF <- mapply(cbind, enrichListglobalDF, "Variable"=names(enrichlistglobal), SIMPLIFY=F)
+# enrichListglobalDF <- lapply(enrichListglobalDF, FUN = function(X){X[c(10, 2, 1, 3:9)]})
+
+# enrichListglobalDF
+# 
+# peakAnnoListDF <- lapply(names(peakAnnoList), function(x) as.data.frame(peakAnnoList[[x]]))
+# 
+# peakAnnoListDF
+
+##Promoter only ; -1000, 1000 bp from TSS
+# peakAnnoPromoter<- lapply(names(peakAnnoList), function(x) as.data.frame(peakAnnoList[[x]]) %>%
+#                             filter(str_detect(annotation, "Promoter")))
+# enrichlistpromoter<-lapply(names(peakAnnoPromoter), function(x) enrichPathway(as.data.frame(peakAnnoPromoter[[x]])$geneId))
+# names(enrichlistpromoter) <- c("RNAPIIdmsoPromoterReactome", "RNAPIIetopPromoterReactome", "BRCA1dmsoPromoterReactome", "BRCA1etopPromoterReactome")
+# enrichlistpromoterDF<-lapply(enrichlistpromoter, function(i) as.data.frame(i))
+# enrichListpromoterDF <- mapply(cbind, enrichlistpromoterDF, "Variable"=names(enrichlistpromoter), SIMPLIFY=F)
+# enrichListpromoterDF
+# 
+# peakAnnoPromoterDF <- lapply(peakAnnoPromoter, function(i) as.data.frame(i))
+# peakAnnoPromoterDF <- mapply(cbind, peakAnnoPromoterDF, "Variable"=names(peakAnnoPromoter), SIMPLIFY=F)
+# 
+# 
+
+geneshorter<- lapply(peak, seq2gene, tssRegion = c(-1000, 1000), flankDistance=0, TxDb=txdb)
+enrichpathwaylistshorter<- lapply(geneshorter, enrichPathway)
+enrichpathwaylistshorterdf<-lapply(enrichpathwaylistshorter, function(i) as.data.frame(i))
+enrichListshorterDFnewcol <- mapply(cbind, enrichpathwaylistshorterdf, "Variable"=names(enrichpathwaylistshorter), SIMPLIFY=F)
+enrichListDFnewcol <- lapply(enrichListshorterDFnewcol, FUN = function(X){X[c(10, 2, 1, 3:9)]})
+
+enrichListDFnewcol
+
+dotplotRNAPIIdmso<-dotplot(enrichpathwaylistshorter[["U2OSRNAPIIdmso1_callpeaknoabC"]], title="U2OSRNAPIIdmso Reactome Enrichment")+
+  xlab(NULL)
+dotplotRNAPIIEtop<-dotplot(enrichpathwaylistshorter[["U2OSRNAPIIetop_callpeaknoabC"]], title="U2OSRNAPIIEtop Reactome Enrichment")
+dotplotBRCA1dmso<- dotplot(enrichpathwaylistshorter[["U2OSBRCA1nt_callpeaknoabC"]], title="U2OSBRCA1dmso Reactome Enrichment")+
+  xlab(NULL)
+dotplotBRCA1Etop<- dotplot(enrichpathwaylistshorter[["U2OSBRCA1etop_callpeaknoabC"]], title="U2OSBRCA1Etop Reactome Enrichment")
+
+ggarrange(dotplotRNAPIIdmso, dotplotRNAPIIEtop, ncol=1, nrow=2, align = 'v')
+ggarrange(dotplotBRCA1dmso, dotplotBRCA1Etop, ncol=1, nrow=2, align='v')
+
+
 
 ##functional profile analysis as list
 
@@ -183,21 +206,21 @@ genesDF<- lapply(peakAnnoListDF, function(i) as.data.frame(i)$geneId)
 
 genesPromoter <- lapply(peakAnnoListDFPromoters, function(i) as.data.frame(i)$geneId)
 names(genesPromoter) = sub("_", "\n", names(genesPromoter))
-compGO <- compareCluster(geneCluster   = genesPromoter,
-                         fun           = "groupGO",
+compGO <- compareCluster(geneCluster   = gene,
+                         fun           = "enrichPathway",
                          OrgDb = org.Hs.eg.db, 
                          keyType = "GOALL",
                          )
 
 pathwaylist<- lapply(genesPromoter, enrichPathway)
 seq2genlist<- lapply(peak, seq2gene, tssRegion = c(-1000, 1000), flankDistance = 3000, TxDb=txdb)
-compReactome <- compareCluster(genesPromoter, fun="enrichPathway", pvalueCutoff= 0.05, pAdjustMethod="BH")
+compReactome <- compareCluster(geneshorter, fun="enrichPathway", pvalueCutoff= 0.05, pAdjustMethod="BH")
 as.data.frame(compReactome)%>%
   filter(str_detect(Description, "DNA Repair"))
   
 compReactomeDF<- lapply(compReactome, function(i) as.data.frame(i))
-
-dotplot(compReactome, showCategory=27, x = "Count")
+as.data.frame(compReactome@compareClusterResult)
+dotplot(compReactome, showCategory = 20)
 
 ```
 
