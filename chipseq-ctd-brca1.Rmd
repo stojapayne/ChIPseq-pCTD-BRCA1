@@ -6,8 +6,7 @@ output: html_document
 ---
 
 ## ChIP peaks coverage plot 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+```{r, results='hide',fig.keep='all', echo=FALSE, message=FALSE,warning=FALSE, fig.width = 12, fig.height = 3}
 
 library(BiocManager)
 #devtools::install_github("YuLab-SMU/ChIPseeker")
@@ -31,24 +30,21 @@ library(stringr)
 #BiocManager::install("org.Hs.eg.db")
 library(org.Hs.eg.db)
 library(patchwork)
+#install.packages("DT")
+library(DT)
 
-peak <- loadNarrowPeaks( "U2OS_narrowpeaks", c("U2OSRNAPIIdmso1_callpeaknoabC", "U2OSRNAPIIetop_callpeaknoabC",
-                                               "U2OSBRCA1nt_callpeaknoabC", "U2OSBRCA1etop_callpeaknoabC"
-                                               ),
-                peaks_suffix = "_peaks.narrowPeak", 
-                sub_dir = FALSE)
+peak <- loadNarrowPeaks( "U2OS_narrowpeaks", c("U2OSRNAPIIdmso1_callpeaknoabC", "U2OSRNAPIIetop_callpeaknoabC", "U2OSBRCA1nt_callpeaknoabC", "U2OSBRCA1etop_callpeaknoabC" ), peaks_suffix = "_peaks.narrowPeak", sub_dir = FALSE)
 
 covplot <- covplot(peak, weightCol="score", chrs=c("chr17"), xlim=c(4.5e7, 5e7))
-covplot + facet_grid(~factor (.id,levels = c( "U2OSRNAPIIdmso1_callpeaknoabC" , "U2OSRNAPIIetop_callpeaknoabC" ,
-                                            "U2OSBRCA1nt_callpeaknoabC" , "U2OSBRCA1etop_callpeaknoabC"))) +
+covplot + facet_grid(~factor (.id)) +
   theme(legend.position="none")
 
 ```
 
 
 
-## Heatmap and profile of ChIP peaks binding to TSS and gene body regions
-```{r setup, include=FALSE, echo=FALSE}
+## Profile of ChIP peaks binding to TSS and gene body regions
+```{r, results='hide',fig.keep='all', echo=FALSE, message=FALSE,warning=FALSE, fig.width = 6, fig.height = 3}
 
 promoter <- getPromoters(TxDb=txdb, upstream=3000, downstream=3000)
 
@@ -58,48 +54,35 @@ tagMatrix <- lapply(peak, getTagMatrix, windows=promoter)
 #                                                  xlab="Genomic Region (5'->3')", ylab =
 #                                                    "Read Count Frequency"))
 # 
-# lapply(names(tagMatrix), function(x) tagHeatmap(tagMatrix[[x]], xlim=c(-3000,3000), 
-#                                                 xlab="Genomic Region (5'->3')",
-#                                                 title=names(tagMatrix[x])))
-
+# # lapply(names(tagMatrix), function(x) tagHeatmap(tagMatrix[[x]], xlab="Genomic Region (5'-3')", title=names(tagMatrix[x])))
+# 
 ```
 
 
-```{r setup, include=FALSE, echo=FALSE}
+```{r, results='hide',fig.keep='all', echo=FALSE, message=FALSE,warning=FALSE, out.width='100%'}
 
+RNAPIIcompareTSS <- plotAvgProf(tagMatrix[1:2], xlim=c(-3000,3000))  +
+  scale_color_manual(values = c("blue", "red"))
 
-allplot <- plotAvgProf(tagMatrix, xlim=c(-3000,3000))  +
-  scale_color_manual(values = c("blue", "red", "green", "orange"))
-  
-allplot
+BRCA1compareTSS <- plotAvgProf(tagMatrix[3:4], xlim=c(-3000,3000))  +
+  scale_color_manual(values = c("blue", "red"))
 
-plotAvgProf(tagMatrix, xlim=c(-3000, 3000), facet="row") + scale_y_continuous(limits = c(0, 0.002))
+RNAPIIcompareTSS 
+BRCA1compareTSS
+
+# plotAvgProf(tagMatrix, xlim=c(-3000, 3000), facet="row") + scale_y_continuous(limits = c(0, 0.002))
 
 plotPeakProf2(peak, upstream = rel(0.2), downstream = rel(0.2),
               by = "gene", type = "body",
               TxDb = txdb, facet = "row", nbin = 800) + scale_y_continuous(limits = c(0, 0.02))
 
 ```
-
-## Profile of several ChIP peak data binding to body region
-
-```{r setup, include=FALSE, echo=FALSE}
-
-plotPeakProf2(peak, upstream = rel(0.2), downstream = rel(0.2),
-              by = "gene", type = "body",
-              TxDb = txdb, facet = "row", nbin = 800) + scale_y_continuous(limits = c(0, 0.02))
-
-
-
-```
-
-
 ## ChIP peak annotation comparison
 
-```{r setup, include=FALSE, echo=FALSE}
+```{r, results='hide',fig.keep='all', echo=FALSE, message=FALSE,warning=FALSE}
 
 peakAnnoList <- lapply(peak, annotatePeak, TxDb=txdb,
-                       tssRegion=c(-3000, 3000), verbose=FALSE)
+                       tssRegion=c(-3000, 3000), annoDb="org.Hs.eg.db")
 
 
 plotAnnoBar(peakAnnoList)
@@ -109,7 +92,7 @@ plotAnnoBar(peakAnnoList)
 
 # Distribution of transcription factor-binding loci relative to TSS
 
-```{r setup, include=FALSE, echo=FALSE}
+```{r, results='hide',fig.keep='all', echo=FALSE, message=FALSE,warning=FALSE}
 
 
 plotDistToTSS(peakAnnoList)
@@ -120,31 +103,55 @@ plotDistToTSS(peakAnnoList)
 
 ## Functional enrichment analysis
 
-```{r setup, include=FALSE, echo=FALSE}
+```{r, results='hide',fig.keep='all', echo=FALSE, message=FALSE,warning=FALSE}
 
 txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
 peakAnnoList <- lapply(peak, annotatePeak, TxDb=txdb,
-                       tssRegion=c(-3000, 3000), verbose=FALSE)
+                       tssRegion=c(-3000, 3000), annoDb="org.Hs.eg.db")
 
 ##Global
 
 geneglobal<- lapply(peak, seq2gene, tssRegion = c(-3000, 3000), flankDistance=3000, TxDb=txdb)
-enrichpathwaylist<- lapply(geneglobal, enrichPathway)
+enrichlistglobal<- lapply(names(peakAnnoList), function(x)
+  enrichPathway(as.data.frame(peakAnnoList[[x]])$geneId))
+
+dotplot(enrichlistglobal[[4]])
+
+peakAnnoDFRNAPIIetop<- as.data.frame(peakAnnoRNAPIIetop) %>%
+  filter(str_detect(annotation, "Promoter"))
+
+peakAnnoListPromoter <- lapply(names(peakAnnoList), function(x) filter(as.data.frame(peakAnnoList[[x]]),str_detect(annotation, "Promoter")))
+                               
+peakAnnoListPromotergeneId<- lapply(names(peakAnnoListPromoter), function(x) as.data.frame(peakAnnoListPromoter[[x]]$"geneId"))                            
+
+
+enrichlistPromoter<- lapply(peakAnnoListPromoter, enrichPathway)
+
+
+dotplot(enrichlistPromoter[[2]])
+
+
+enrichpathwaylist<- lapply(peakAnnoList, enrichPathway)
 enrichpathwaylistdf<-lapply(enrichpathwaylist, function(i) as.data.frame(i))
-enrichListshorterDFnewcol <- mapply(cbind, enrichpathwaylistshorterdf, "Variable"=names(enrichpathwaylistshorter), SIMPLIFY=F)
-enrichListDFnewcol <- lapply(enrichListshorterDFnewcol, FUN = function(X){X[c(10, 2, 1, 3:9)]})
+enrichListdf <- mapply(cbind, enrichpathwaylistdf, "Variable"=names(enrichpathwaylist), SIMPLIFY=F)
+enrichListdf <- lapply(enrichListdf, FUN = function(X){X[c(10, 2, 1, 3:9)]})
 
-enrichListDFnewcol
+enrichListDF
 
-dotplotRNAPIIdmso<-dotplot(enrichpathwaylistshorter[["U2OSRNAPIIdmso1_callpeaknoabC"]], title="U2OSRNAPIIdmso Reactome Enrichment")+
+dotplotglobalRNAPIIdmso<-dotplot(enrichpathwaylist[["U2OSRNAPIIdmso1_callpeaknoabC"]], title="U2OSRNAPIIdmso Global Reactome Enrichment")+
   xlab(NULL)
-dotplotRNAPIIEtop<-dotplot(enrichpathwaylistshorter[["U2OSRNAPIIetop_callpeaknoabC"]], title="U2OSRNAPIIEtop Reactome Enrichment")
-dotplotBRCA1dmso<- dotplot(enrichpathwaylistshorter[["U2OSBRCA1nt_callpeaknoabC"]], title="U2OSBRCA1dmso Reactome Enrichment")+
+dotplotglobalRNAPIIEtop<-dotplot(enrichpathwaylist[["U2OSRNAPIIetop_callpeaknoabC"]], title="U2OSRNAPIIEtop Global Reactome Enrichment")
+dotplotglobalBRCA1dmso<- dotplot(enrichpathwaylist[["U2OSBRCA1nt_callpeaknoabC"]], title="U2OSBRCA1dmso Global Reactome Enrichment")+
   xlab(NULL)
-dotplotBRCA1Etop<- dotplot(enrichpathwaylistshorter[["U2OSBRCA1etop_callpeaknoabC"]], title="U2OSBRCA1Etop Reactome Enrichment")
+dotplotglobalBRCA1Etop<- dotplot(enrichpathwaylist[["U2OSBRCA1etop_callpeaknoabC"]], title="U2OSBRCA1Etop Global Reactome Enrichment")
 
-ggarrange(dotplotRNAPIIdmso, dotplotRNAPIIEtop, ncol=1, nrow=2, align = 'v')
-ggarrange(dotplotBRCA1dmso, dotplotBRCA1Etop, ncol=1, nrow=2, align='v')
+ggarrange(dotplotglobalRNAPIIdmso, dotplotglobalRNAPIIEtop, ncol=1, nrow=2, align = 'v')
+ggarrange(dotglobalplotBRCA1dmso, dotploglobaltBRCA1Etop, ncol=1, nrow=2, align='v')
+
+compReactomeDF<- lapply(compReactome, function(i) as.data.frame(i))
+compReactome <- compareCluster(geneglobal, fun="enrichPathway", pvalueCutoff= 0.05, pAdjustMethod="BH")
+dotplot(compReactome)
+
 
 # enrichlistglobal<- lapply(names(peakAnnoList), function(x) enrichPathway(as.data.frame(peakAnnoList[[x]])$geneId))
 # names(enrichlistglobal)<-c(names(peakAnnoList))
@@ -173,6 +180,8 @@ ggarrange(dotplotBRCA1dmso, dotplotBRCA1Etop, ncol=1, nrow=2, align='v')
 # 
 
 geneshorter<- lapply(peak, seq2gene, tssRegion = c(-1000, 1000), flankDistance=0, TxDb=txdb)
+compReactomeshorter <- compareCluster(geneshorter, fun="enrichPathway", pvalueCutoff= 0.05, pAdjustMethod="BH")
+dotplot(compReactome)
 enrichpathwaylistshorter<- lapply(geneshorter, enrichPathway)
 enrichpathwaylistshorterdf<-lapply(enrichpathwaylistshorter, function(i) as.data.frame(i))
 enrichListshorterDFnewcol <- mapply(cbind, enrichpathwaylistshorterdf, "Variable"=names(enrichpathwaylistshorter), SIMPLIFY=F)
@@ -192,7 +201,7 @@ ggarrange(dotplotBRCA1dmso, dotplotBRCA1Etop, ncol=1, nrow=2, align='v')
 
 
 
-##functional profile analysis as list
+##functional profile analysis 
 
 peakAnnoListshorter <- lapply(peak, annotatePeak, TxDb=txdb,
                        tssRegion=c(-1000, 1000), verbose=FALSE)
@@ -203,14 +212,6 @@ peakAnnoListDFPromoters <- lapply(peakAnnoListshorter, function(i) as.data.frame
 peakAnnoListDF <- lapply(peakAnnoList, function(i) as.data.frame(i))
 genesDF<- lapply(peakAnnoListDF, function(i) as.data.frame(i)$geneId)
 
-
-genesPromoter <- lapply(peakAnnoListDFPromoters, function(i) as.data.frame(i)$geneId)
-names(genesPromoter) = sub("_", "\n", names(genesPromoter))
-compGO <- compareCluster(geneCluster   = gene,
-                         fun           = "enrichPathway",
-                         OrgDb = org.Hs.eg.db, 
-                         keyType = "GOALL",
-                         )
 
 pathwaylist<- lapply(genesPromoter, enrichPathway)
 seq2genlist<- lapply(peak, seq2gene, tssRegion = c(-1000, 1000), flankDistance = 3000, TxDb=txdb)
