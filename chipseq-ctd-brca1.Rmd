@@ -32,6 +32,9 @@ library(org.Hs.eg.db)
 library(patchwork)
 #install.packages("DT")
 library(DT)
+#BiocManager::install("seq2pathway")
+library(seq2pathway)
+
 
 peak <- loadNarrowPeaks( "U2OS_narrowpeaks", c("U2OSRNAPIIdmso1_callpeaknoabC", "U2OSRNAPIIetop_callpeaknoabC", "U2OSBRCA1nt_callpeaknoabC", "U2OSBRCA1etop_callpeaknoabC" ), peaks_suffix = "_peaks.narrowPeak", sub_dir = FALSE)
 
@@ -106,29 +109,104 @@ plotDistToTSS(peakAnnoList)
 ```{r, results='hide',fig.keep='all', echo=FALSE, message=FALSE,warning=FALSE}
 
 txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
-peakAnnoList <- lapply(peak, annotatePeak, TxDb=txdb,
-                       tssRegion=c(-3000, 3000), annoDb="org.Hs.eg.db")
+peak <- loadNarrowPeaks( "U2OS_narrowpeaks", c("U2OSRNAPIIdmso1_callpeaknoabC", "U2OSRNAPIIetop_callpeaknoabC", "U2OSBRCA1nt_callpeaknoabC", "U2OSBRCA1etop_callpeaknoabC" ), peaks_suffix = "_peaks.narrowPeak", sub_dir = FALSE)
 
 ##Global
 
-geneglobal<- lapply(peak, seq2gene, tssRegion = c(-3000, 3000), flankDistance=3000, TxDb=txdb)
+peakAnnoList <- lapply(peak, annotatePeak, TxDb=txdb,
+                       tssRegion=c(-1000, 1000), flankDistance = 3000)
+
+peakannolistDF<- lapply(peakAnnoList, as.data.frame)
+head(peakannolistDF)
+
+peakAnnoListgeneId<- lapply(peakannolistDF, pull, geneId)
+
+enrichlist<- lapply(peakAnnoListgeneId, enrichPathway)
+names(enrichlist)<-c(names(peakAnnoListgeneId))
+
+##Promoter 
+
+peakAnnoListPromoter <- lapply(names(peakannolistDF), function(x) filter(peakannolistDF[[x]], 
+                                                                         grepl("Promoter", annotation)))
+                               
+peakAnnoListPromotergeneId<- lapply(peakAnnoListPromoter, pull, geneId)
+
+enrichlistPromoter<- lapply(peakAnnoListPromotergeneId, enrichPathway)
+
+names(enrichlistPromoter)<-c(names(peakannolistDF))
+
+##Tables of associated pathways 
+
+#Global
+
+lapply(enrichlist, as.data.frame)
+
+#Promoter
+
+lapply(enrichlistPromoter, as.data.frame)
+
+##Plotting
+
+#U2OSRNAPII global vs promoter only associated genes
+ggarrange(dotplot(enrichlist[["U2OSRNAPIIetop_callpeaknoabC"]], showCategory=15), dotplot(enrichlistPromoter[["U2OSRNAPIIetop_callpeaknoabC"]], showCategory=15), align = 'v')
+
+
+
+lapply(enrichlistPromoter, as.data.frame)
+
+dotplot(enrichlistPromoter[[4]])
+
+
+peakAnnoListPromoter<- lapply(peak, annotatePeak, TxDb=txdb,
+                       tssRegion=c(-3000, 3000), flankDistance = 3000, genomicAnnotationPriority="Promoter")
+
+
+
+
+##Global
+
+geneglobal<- lapply(peak, seq2gene, tssRegion = c(-1000, 1000), flankDistance=0, TxDb=txdb)
+
+
+enrichgeneglobal <- lapply(geneglobal, enrichPathway)
+
+
 enrichlistglobal<- lapply(names(peakAnnoList), function(x)
   enrichPathway(as.data.frame(peakAnnoList[[x]])$geneId))
 
-dotplot(enrichlistglobal[[4]])
+enrichlistpromoter<- lapply(names(peakAnnoListPromoter), function(x)
+  enrichPathway(as.data.frame(peakAnnoListPromoter[[x]])$geneId))
 
-peakAnnoDFRNAPIIetop<- as.data.frame(peakAnnoRNAPIIetop) %>%
+peakannolistDF<- lapply(peakAnnoList, as.data.frame)
+head(peakannolistDF)
+lapply(enrichlistglobal, as.data.frame)
+dotplot(enrichlistglobal[[4]]) + dotplot(enrichgeneglobal[[4]])
+
+peakAnnoListPromoter<- lapply(peakAnnoList, function(x) as.data.frame(x))
+peakAnnoListPromoter<- lapply(names(peakAnnoList), function(x) filter(as.data.frame(peakAnnoList[[x]]), grepl("Promoter", annotation, ignore.case = TRUE)))
+genePromoter <- lapply(peakAnnoListPromoter, function(x) peakAnnoListPromoter[[x]]$geneId)
+enrichlistpromoter <- lapply(genePromoter, function(x) enrichPathway(genePromoter[[x]]))
+
+RNAPIIDMSOenrichPromoter<-enrichPathway(peakAnnoListPromoter[[1]]$geneId)
+dotplot(RNAPIIDMSOenrichPromoter)
+RNAPIIetopenrichPromoter<-enrichPathway(peakAnnoListPromoter[[2]]$geneId)
+dotplot(RNAPIIetopenrichPromoter)
+
+
+filter(grepl("Promoter", annotation, ignore.case = TRUE))
+  
+  as.data.frame(peakAnnoRNAPIIetop) %>%
   filter(str_detect(annotation, "Promoter"))
 
-peakAnnoListPromoter <- lapply(names(peakAnnoList), function(x) filter(as.data.frame(peakAnnoList[[x]]),str_detect(annotation, "Promoter")))
+peakAnnoListPromoter <- lapply(names(peakannolistDF), function(x) filter(peakannolistDF[[x]], 
+                                                                         str_extract_all("<=1kb")))
                                
-peakAnnoListPromotergeneId<- lapply(names(peakAnnoListPromoter), function(x) as.data.frame(peakAnnoListPromoter[[x]]$"geneId"))                            
+peakAnnoListPromotergeneId<- lapply(peakAnnoListPromoter, pull, geneId)
+
+enrichlistPromoter<- lapply(peakAnnoListPromotergeneId, enrichPathway)
 
 
-enrichlistPromoter<- lapply(peakAnnoListPromoter, enrichPathway)
-
-
-dotplot(enrichlistPromoter[[2]])
+ggarrange(dotplot(enrichlistPromoter[[1]]), dotplot(enrichlistPromoter[[2]]), dotplot(enrichlistPromoter[[3]]), dotplot(enrichlistPromoter[[4]]), ncol=1, nrow=4, align='v')
 
 
 enrichpathwaylist<- lapply(peakAnnoList, enrichPathway)
